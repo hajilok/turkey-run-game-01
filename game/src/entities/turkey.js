@@ -1,140 +1,119 @@
-// Pippin the Turkey controller: responsive run, jump + feather-flutter glide, stealth cover, gobble-dash, and mouse-aimed acorn toss.
+// Pippin the Turkey controller: responsive run, jump + feather-flutter glide, bounce-hay launches, stealth cover, gobble-dash, and acorn toss.
 
 import { GROUND_Y, PHYSICS, clamp } from '../config.js';
 import { spawnAcornProjectile } from '../world/hazards.js';
 
 export function createTurkey(startX = 240) {
-  return { x: startX, y: GROUND_Y, vx: 0, vy: 0, w: 50, h: 58, facing: 1, grounded: true, coyoteTimer: 0, fluttering: false, flutterFuel: 1.0, dashTimer: 0, dashCooldown: 0, hidden: false, hideSpot: null, lives: 3, maxLives: 3, acorns: 4, maxAcorns: 6, invulnTimer: 0, closeCallTimer: 0, squashX: 1, squashY: 1, runCycle: 0, wingAngle: 0, panicLevel: 0, speech: '', speechTimer: 0, onGravy: false, tailGlow: 0 };
+  return { x: startX, y: GROUND_Y, vx: 0, vy: 0, w: 50, h: 58, facing: 1, grounded: true, coyoteTimer: 0, fluttering: false, flutterFuel: 1, dashTimer: 0, dashCooldown: 0, hidden: false, hideSpot: null, lives: 3, maxLives: 3, acorns: 4, maxAcorns: 6, invulnTimer: 0, closeCallTimer: 0, squashX: 1, squashY: 1, runCycle: 0, wingAngle: 0, panicLevel: 0, speech: '', speechTimer: 0, onGravy: false, tailGlow: 0 };
 }
 
-export function triggerGobbleDash(turkey, moveDir, particles, sound) {
-  if (turkey.dashCooldown > 0 || turkey.dashTimer > 0) return false;
-  if (turkey.hidden) { turkey.hidden = false; if (turkey.hideSpot) turkey.hideSpot.occupied = false; turkey.hideSpot = null; }
-  const dir = moveDir !== 0 ? moveDir : turkey.facing;
-  turkey.facing = dir; turkey.dashTimer = PHYSICS.dashDuration; turkey.dashCooldown = PHYSICS.dashCooldown;
-  turkey.vx = dir * PHYSICS.dashSpeed; turkey.vy = Math.min(turkey.vy, -95);
-  turkey.squashX = 1.34; turkey.squashY = 0.74; turkey.speech = 'GOBBLE-GO!'; turkey.speechTimer = 0.75;
-  particles.spawnFeatherBurst(turkey.x - dir * 16, turkey.y - 28, 10, 0.9);
-  if (sound) { sound.playDash(); sound.playGobble(1.18); }
+export function triggerGobbleDash(t, dirIn, p, snd) {
+  if (t.dashCooldown > 0 || t.dashTimer > 0) return false;
+  if (t.hidden) { t.hidden = false; if (t.hideSpot) t.hideSpot.occupied = false; t.hideSpot = null; }
+  const dir = dirIn || t.facing;
+  Object.assign(t, { facing: dir, dashTimer: PHYSICS.dashDuration, dashCooldown: PHYSICS.dashCooldown, vx: dir * PHYSICS.dashSpeed, vy: Math.min(t.vy, -95), squashX: 1.34, squashY: 0.74 });
+  p.spawnFeatherBurst(t.x - dir * 16, t.y - 28, 10, 0.9); if (snd) { snd.playDash(); snd.playGobble(1.18); }
   return true;
 }
 
-export function toggleStealthCover(turkey, course, wantsHide, particles, sound) {
+export function toggleStealthCover(t, course, wantsHide, p, snd) {
   let spot = null;
-  for (const s of course.hidingSpots) { if (turkey.x >= s.x + 6 && turkey.x <= s.x + s.w - 6 && Math.abs(turkey.y - GROUND_Y) < 28) { spot = s; break; } }
-  if (wantsHide && spot && turkey.dashTimer <= 0) {
-    if (!turkey.hidden) {
-      turkey.hidden = true; turkey.hideSpot = spot; spot.occupied = true; spot.wiggle = 1.0; turkey.vx *= 0.2; turkey.x = spot.x + spot.w * 0.5;
-      if (spot.kind === 'flour_sack') particles.spawnFlourCloud(turkey.x, GROUND_Y - 38); else particles.spawnDustPuff(turkey.x, GROUND_Y - 12, 0, 5);
-      particles.spawnCallout(turkey.x, spot.y - 16, 'HIDDEN!', '#a8f0a4', 0.95);
-      if (sound) sound.playHide();
-    } else { spot.occupied = true; turkey.hideSpot = spot; }
+  for (const s of course.hidingSpots) if (t.x >= s.x - 14 && t.x <= s.x + s.w + 14 && Math.abs(t.y - GROUND_Y) < 36) { spot = s; break; }
+  if (wantsHide && spot && t.dashTimer <= 0) {
+    if (!t.hidden) {
+      t.hidden = true; t.hideSpot = spot; spot.occupied = true; spot.wiggle = 1; t.vx *= 0.2; t.x = spot.x + spot.w * 0.5;
+      if (spot.kind === 'flour_sack') p.spawnFlourCloud(t.x, GROUND_Y - 38); else p.spawnDustPuff(t.x, GROUND_Y - 12, 0, 5);
+      p.spawnCallout(t.x, spot.y - 18, 'HIDDEN!', '#a8f0a4', 0.95); if (snd) snd.playHide();
+    } else { spot.occupied = true; t.hideSpot = spot; }
     return;
   }
-  if (turkey.hidden) { if (turkey.hideSpot) turkey.hideSpot.occupied = false; turkey.hidden = false; turkey.hideSpot = null; }
+  if (t.hidden) { if (t.hideSpot) t.hideSpot.occupied = false; t.hidden = false; t.hideSpot = null; }
 }
 
-export function computeAcornAimVelocity(turkey, targetWorldX, targetWorldY) {
-  const originX = turkey.x + turkey.facing * 18, originY = turkey.y - 42;
-  const dx = targetWorldX - originX, dy = targetWorldY - originY, dist = Math.max(40, Math.hypot(dx, dy));
-  const t = Math.max(0.14, dist / clamp(dist * 2.1, 480, PHYSICS.acornSpeed));
-  const vx = dx / t, vy = (dy - 0.5 * PHYSICS.acornGravity * t * t) / t;
-  const mag = Math.hypot(vx, vy), scale = mag > 0 ? Math.min(mag, 880) / mag : 1;
-  return { originX, originY, vx: vx * scale, vy: vy * scale };
+export function computeAcornAimVelocity(t, tx, ty) {
+  const ox = t.x + t.facing * 18, oy = t.y - 42, dx = tx - ox, dy = ty - oy, dist = Math.max(40, Math.hypot(dx, dy));
+  const tm = Math.max(0.14, dist / clamp(dist * 2.1, 480, PHYSICS.acornSpeed));
+  const vx = dx / tm, vy = (dy - 0.5 * PHYSICS.acornGravity * tm * tm) / tm, mag = Math.hypot(vx, vy), sc = mag > 0 ? Math.min(mag, 880) / mag : 1;
+  return { originX: ox, originY: oy, vx: vx * sc, vy: vy * sc };
 }
 
-export function throwAcornDecoy(turkey, course, targetWorldX, targetWorldY, particles, sound) {
-  if (turkey.acorns <= 0) return false;
-  turkey.acorns -= 1; turkey.facing = targetWorldX >= turkey.x ? 1 : -1;
-  const aim = computeAcornAimVelocity(turkey, targetWorldX, targetWorldY);
+export function throwAcornDecoy(t, course, tx, ty, p, snd) {
+  if (t.acorns <= 0) return false;
+  t.acorns -= 1; t.facing = tx >= t.x ? 1 : -1;
+  const aim = computeAcornAimVelocity(t, tx, ty);
   spawnAcornProjectile(course, aim.originX, aim.originY, aim.vx, aim.vy);
-  turkey.squashX = 1.15; turkey.squashY = 0.88; particles.spawnFeatherBurst(aim.originX, aim.originY, 3, 0.45);
-  if (sound) sound.playAcornToss();
+  t.squashX = 1.15; t.squashY = 0.88; p.spawnFeatherBurst(aim.originX, aim.originY, 3, 0.45); if (snd) snd.playAcornToss();
   return true;
 }
 
-export function updateTurkeyMovement(turkey, input, course, cameraX, dt, particles, sound, stats) {
-  const moveDir = input.getMoveX();
-  if (turkey.invulnTimer > 0) turkey.invulnTimer = Math.max(0, turkey.invulnTimer - dt);
-  if (turkey.dashCooldown > 0) turkey.dashCooldown = Math.max(0, turkey.dashCooldown - dt);
-  if (turkey.closeCallTimer > 0) turkey.closeCallTimer = Math.max(0, turkey.closeCallTimer - dt);
-  if (turkey.speechTimer > 0) turkey.speechTimer = Math.max(0, turkey.speechTimer - dt);
-  turkey.squashX += (1 - turkey.squashX) * Math.min(1, dt * 14);
-  turkey.squashY += (1 - turkey.squashY) * Math.min(1, dt * 14);
+export function updateTurkeyMovement(t, input, course, cameraX, dt, p, snd, stats) {
+  const mv = input.getMoveX();
+  if (t.invulnTimer > 0) t.invulnTimer = Math.max(0, t.invulnTimer - dt);
+  if (t.dashCooldown > 0) t.dashCooldown = Math.max(0, t.dashCooldown - dt);
+  if (t.closeCallTimer > 0) t.closeCallTimer = Math.max(0, t.closeCallTimer - dt);
+  if (t.speechTimer > 0) t.speechTimer = Math.max(0, t.speechTimer - dt);
+  t.squashX += (1 - t.squashX) * Math.min(1, dt * 14); t.squashY += (1 - t.squashY) * Math.min(1, dt * 14);
+  for (const pl of course.platforms) if (pl.bounceAnim > 0) pl.bounceAnim = Math.max(0, pl.bounceAnim - dt * 5);
 
-  toggleStealthCover(turkey, course, input.isHideHeld(), particles, sound);
-  if (input.consumeDashBuffer()) triggerGobbleDash(turkey, moveDir, particles, sound);
-  if (input.pointer.justClicked && !input.getHoveredButton()) throwAcornDecoy(turkey, course, cameraX + input.pointer.x, input.pointer.y, particles, sound);
+  toggleStealthCover(t, course, input.isHideHeld(), p, snd);
+  if (input.consumeDashBuffer()) triggerGobbleDash(t, mv, p, snd);
+  if (input.pointer.justClicked && !input.getHoveredButton()) throwAcornDecoy(t, course, cameraX + input.pointer.x, input.pointer.y, p, snd);
 
-  if (turkey.hidden) {
-    turkey.vx = 0; turkey.vy = 0;
-    if (turkey.hideSpot) turkey.hideSpot.wiggle = Math.max(0, turkey.hideSpot.wiggle - dt * 2.5);
+  if (t.hidden) {
+    t.vx = 0; t.vy = 0; if (t.hideSpot) t.hideSpot.wiggle = Math.max(0, t.hideSpot.wiggle - dt * 2.5);
     if (input.consumeJumpBuffer()) {
-      if (turkey.hideSpot) turkey.hideSpot.occupied = false;
-      Object.assign(turkey, { hidden: false, hideSpot: null, vy: PHYSICS.jumpVelocity * 0.92, grounded: false, squashX: 0.78, squashY: 1.26 });
-      if (sound) sound.playJump();
+      if (t.hideSpot) t.hideSpot.occupied = false;
+      Object.assign(t, { hidden: false, hideSpot: null, vy: PHYSICS.jumpVelocity * 0.92, grounded: false, squashX: 0.78, squashY: 1.26, invulnTimer: Math.max(t.invulnTimer, 0.42) });
+      if (snd) snd.playJump();
     }
     return;
   }
 
-  turkey.onGravy = turkey.grounded && course.gravySpills.some((s) => turkey.x > s.x && turkey.x < s.x + s.w && Math.abs(turkey.y - GROUND_Y) < 12);
-  if (turkey.dashTimer > 0) {
-    turkey.dashTimer -= dt;
-    if (Math.random() < dt * 36) particles.spawnFeatherBurst(turkey.x - turkey.facing * 20, turkey.y - 26, 1, 0.35);
-  } else {
-    const accel = turkey.grounded ? (turkey.onGravy ? PHYSICS.runAccel * 0.48 : PHYSICS.runAccel) : PHYSICS.airAccel;
-    const drag = turkey.grounded ? (turkey.onGravy ? 2.2 : PHYSICS.groundDrag) : PHYSICS.airDrag;
-    const maxS = turkey.onGravy ? PHYSICS.maxRunSpeed * 1.24 : PHYSICS.maxRunSpeed;
-    if (moveDir !== 0) { turkey.facing = moveDir; turkey.vx = clamp(turkey.vx + moveDir * accel * dt, -maxS, maxS); }
-    else { turkey.vx *= Math.max(0, 1 - drag * dt); if (Math.abs(turkey.vx) < 8) turkey.vx = 0; }
+  t.onGravy = t.grounded && course.gravySpills.some((s) => t.x > s.x && t.x < s.x + s.w && Math.abs(t.y - GROUND_Y) < 12);
+  if (t.dashTimer > 0) { t.dashTimer -= dt; if (Math.random() < dt * 36) p.spawnFeatherBurst(t.x - t.facing * 20, t.y - 26, 1, 0.35); }
+  else {
+    const ac = t.grounded ? (t.onGravy ? PHYSICS.runAccel * 0.48 : PHYSICS.runAccel) : PHYSICS.airAccel;
+    const dr = t.grounded ? (t.onGravy ? 2.2 : PHYSICS.groundDrag) : PHYSICS.airDrag;
+    const ms = t.onGravy ? PHYSICS.maxRunSpeed * 1.24 : PHYSICS.maxRunSpeed;
+    if (mv) { t.facing = mv; t.vx = clamp(t.vx + mv * ac * dt, -ms, ms); } else { t.vx *= Math.max(0, 1 - dr * dt); if (Math.abs(t.vx) < 8) t.vx = 0; }
   }
 
-  if (turkey.grounded) { turkey.coyoteTimer = PHYSICS.coyoteTime; turkey.flutterFuel = 1.0; }
-  else if (turkey.coyoteTimer > 0) turkey.coyoteTimer = Math.max(0, turkey.coyoteTimer - dt);
-
-  if (turkey.coyoteTimer > 0 && input.consumeJumpBuffer()) {
-    turkey.vy = PHYSICS.jumpVelocity; turkey.grounded = false; turkey.coyoteTimer = 0; turkey.squashX = 0.78; turkey.squashY = 1.28;
-    particles.spawnDustPuff(turkey.x, turkey.y, -turkey.facing, 5); if (sound) sound.playJump();
+  if (t.grounded) { t.coyoteTimer = PHYSICS.coyoteTime; t.flutterFuel = 1; } else if (t.coyoteTimer > 0) t.coyoteTimer = Math.max(0, t.coyoteTimer - dt);
+  if (t.coyoteTimer > 0 && input.consumeJumpBuffer()) {
+    Object.assign(t, { vy: PHYSICS.jumpVelocity, grounded: false, coyoteTimer: 0, squashX: 0.78, squashY: 1.28 });
+    p.spawnDustPuff(t.x, t.y, -t.facing, 5); if (snd) snd.playJump();
   }
 
-  turkey.fluttering = false;
-  if (!turkey.grounded && turkey.vy > 20 && input.isJumpHeld() && turkey.flutterFuel > 0) {
-    turkey.fluttering = true; turkey.flutterFuel = Math.max(0, turkey.flutterFuel - dt * 0.9);
-    turkey.vy = Math.min(turkey.vy + PHYSICS.flutterGravity * dt, PHYSICS.maxFlutterFall);
-    if (Math.random() < dt * 10) particles.spawnFeatherBurst(turkey.x, turkey.y - 20, 1, 0.25);
-  } else {
-    if (!input.isJumpHeld() && turkey.vy < -210) turkey.vy *= 0.86;
-    turkey.vy = Math.min(turkey.vy + PHYSICS.gravity * dt, PHYSICS.maxFallSpeed);
-  }
+  t.fluttering = false;
+  if (!t.grounded && t.vy > 20 && input.isJumpHeld() && t.flutterFuel > 0) {
+    t.fluttering = true; t.flutterFuel = Math.max(0, t.flutterFuel - dt * 0.9); t.vy = Math.min(t.vy + PHYSICS.flutterGravity * dt, PHYSICS.maxFlutterFall);
+    if (Math.random() < dt * 10) p.spawnFeatherBurst(t.x, t.y - 20, 1, 0.25);
+  } else { if (!input.isJumpHeld() && t.vy < -210) t.vy *= 0.86; t.vy = Math.min(t.vy + PHYSICS.gravity * dt, PHYSICS.maxFallSpeed); }
 
-  const prevY = turkey.y;
-  turkey.x = clamp(turkey.x + turkey.vx * dt, 70, course.lengthPx + 180);
-  turkey.y += turkey.vy * dt; turkey.grounded = false;
-  if (turkey.vy >= 0 && !input.isHideHeld()) {
-    for (const p of course.platforms) {
-      if (turkey.x + 18 > p.x && turkey.x - 18 < p.x + p.w && prevY <= p.y + 10 && turkey.y >= p.y) {
-        turkey.y = p.y; if (turkey.vy > 240) { turkey.squashX = 1.22; turkey.squashY = 0.82; particles.spawnDustPuff(turkey.x, turkey.y, 0, 4); }
-        turkey.vy = 0; turkey.grounded = true; break;
+  const py = t.y; t.x = clamp(t.x + t.vx * dt, 70, course.lengthPx + 180); t.y += t.vy * dt; t.grounded = false;
+  if (t.vy >= 0 && !input.isHideHeld()) {
+    for (const pl of course.platforms) {
+      if (t.x + 18 > pl.x && t.x - 18 < pl.x + pl.w && py <= pl.y + 12 && t.y >= pl.y) {
+        t.y = pl.y;
+        if (pl.bounce) {
+          Object.assign(t, { vy: PHYSICS.hayBounceVelocity, grounded: false, flutterFuel: 1, squashX: 0.72, squashY: 1.34 });
+          pl.bounceAnim = 1; p.spawnDustPuff(t.x, pl.y, 0, 8); p.spawnCallout(t.x, pl.y - 36, 'HAY BOUNCE!', '#ffe57a', 0.95); if (snd) snd.playHayBounce();
+        } else { if (t.vy > 240) { t.squashX = 1.22; t.squashY = 0.82; p.spawnDustPuff(t.x, t.y, 0, 4); } t.vy = 0; t.grounded = true; }
+        break;
       }
     }
   }
-  if (turkey.y >= GROUND_Y) {
-    if (prevY < GROUND_Y - 12 && turkey.vy > 240) { turkey.squashX = 1.24; turkey.squashY = 0.8; particles.spawnDustPuff(turkey.x, GROUND_Y, 0, 5); }
-    turkey.y = GROUND_Y; turkey.vy = 0; turkey.grounded = true;
-  }
+  if (t.y >= GROUND_Y) { if (py < GROUND_Y - 12 && t.vy > 240) { t.squashX = 1.24; t.squashY = 0.8; p.spawnDustPuff(t.x, GROUND_Y, 0, 5); } t.y = GROUND_Y; t.vy = 0; t.grounded = true; }
+  if (t.grounded && Math.abs(t.vx) > 25) { t.runCycle += dt * Math.abs(t.vx) * 0.045; if (Math.random() < dt * 7) p.spawnDustPuff(t.x - t.facing * 14, t.y, -t.facing, 1); }
 
-  if (turkey.grounded && Math.abs(turkey.vx) > 25) {
-    turkey.runCycle += dt * Math.abs(turkey.vx) * 0.045;
-    if (Math.random() < dt * 7) particles.spawnDustPuff(turkey.x - turkey.facing * 14, turkey.y, -turkey.facing, 1);
-  }
-
-  for (const item of course.collectibles) {
-    if (item.collected || Math.hypot(turkey.x - item.x, turkey.y - 30 - item.y) >= item.radius + 30) continue;
-    item.collected = true;
-    if (item.kind === 'corn') { stats.cornCollected += 1; const pts = 50 * stats.combo; stats.score += pts; particles.spawnCallout(item.x, item.y - 16, `+${pts}`, '#ffe27a', 0.85); }
-    else if (item.kind === 'acorn') { turkey.acorns = Math.min(turkey.maxAcorns, turkey.acorns + 2); stats.score += 40; particles.spawnCallout(item.x, item.y - 16, '+2 ACORNS', '#e8b97b', 0.9); }
-    else if (item.kind === 'golden_feather') { stats.goldenFeathers += 1; const pts = 250 * stats.combo; stats.score += pts; particles.spawnFeatherBurst(item.x, item.y, 12, 1.0); particles.spawnCallout(item.x, item.y - 24, `GOLDEN PLUME! +${pts}`, '#fff08a', 1.15); }
-    else if (item.kind === 'berry_tart') { turkey.lives = Math.min(turkey.maxLives, turkey.lives + 1); stats.score += 150; particles.spawnCallout(item.x, item.y - 20, '+1 HEART!', '#ff8c9e', 1.1); }
-    if (sound) sound.playCollect(item.kind);
+  const mult = stats.scoreMult || 1;
+  for (const it of course.collectibles) {
+    if (it.collected || Math.hypot(t.x - it.x, t.y - 30 - it.y) >= it.radius + 30) continue;
+    it.collected = true;
+    if (it.kind === 'corn') { stats.cornCollected += 1; const pts = Math.round(50 * stats.combo * mult); stats.score += pts; p.spawnCallout(it.x, it.y - 16, `+${pts}`, '#ffe27a', 0.85); }
+    else if (it.kind === 'acorn') { t.acorns = Math.min(t.maxAcorns, t.acorns + 2); stats.score += Math.round(40 * mult); p.spawnCallout(it.x, it.y - 16, '+2 ACORNS', '#e8b97b', 0.9); }
+    else if (it.kind === 'golden_feather') { stats.goldenFeathers += 1; const pts = Math.round(250 * stats.combo * mult); stats.score += pts; p.spawnFeatherBurst(it.x, it.y, 12, 1); p.spawnCallout(it.x, it.y - 24, `GOLDEN PLUME! +${pts}`, '#fff08a', 1.15); }
+    else if (it.kind === 'berry_tart') { t.lives = Math.min(t.maxLives, t.lives + 1); stats.score += Math.round(150 * mult); p.spawnCallout(it.x, it.y - 20, '+1 HEART!', '#ff8c9e', 1.1); }
+    if (snd) snd.playCollect(it.kind);
   }
 }
