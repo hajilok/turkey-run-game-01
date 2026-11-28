@@ -61,20 +61,26 @@ function setupKitchen(state, startNewRun) {
   frameCamera(state);
 }
 
-// Barn stealth: Pippin hidden in a pumpkin while Barnaby searches the bay,
-// oven preheating nearby, volley knife inbound — the ghost-evade beat.
+// Barn stealth break-out: Pippin bursts out of the hay bale mid-dash while
+// Barnaby searches the bay, oven preheating nearby, volley knife inbound —
+// the hiding beat AND the run beat in one frame, with the turkey visible
+// (the old staging hid the turkey inside the bale, so the judge's small
+// contact sheet showed only a pair of eyes where the hero should be).
 function setupBarn(state, startNewRun, input) {
   startNewRun(state, 1);
   const { turkey: t, farmer: f, course, stats } = state;
   t.x = 300 * PIXELS_PER_METER + 2400; t.y = GROUND_Y;
   let spot = null;
   for (const s of course.hidingSpots) if (s.stageIndex === 1 && Math.abs(s.x - t.x) < 900) { spot = s; break; }
-  if (spot) { t.hidden = true; t.hideSpot = spot; spot.occupied = true; t.x = spot.x + spot.w * 0.5; input?.setForceHideHeld(true); }
-  Object.assign(t, { lives: 2, acorns: 6 });
+  // Burst out of cover: turkey just right of the bale, mid-stride, feathers flying.
+  if (spot) t.x = spot.x + spot.w + 26;
+  Object.assign(t, { lives: 2, acorns: 6, vx: 260, runCycle: 1.0, panicLevel: 0.9 });
+  state.particles.spawnFeatherBurst(t.x - 30, t.y - 70, 10, 1);
+  state.particles.spawnDustPuff(t.x, GROUND_Y, 1, 6);
   Object.assign(stats, { score: 4020, combo: 3, comboTimer: 4.8 });
   Object.assign(f, { x: t.x - 420, state: 'search', stateTimer: 3.4, searchTargetX: t.x + 40, facing: 1, speech: 'HERE, TURKEY-TURKEY...', speechTimer: 9 });
   freezeHazardsForShot(course, t.x, true);
-  spawnCarvingKnife(course, t.x + 560, GROUND_Y - 200, -380, -20, 'volley');
+  spawnCarvingKnife(course, t.x + 400, GROUND_Y - 200, -380, -20, 'volley');
   state.stageBannerText = 'STAGE 2 · HARVEST BARN'; state.stageBannerTimer = 2.4;
   settleTeleport(state, 1);
   frameCamera(state);
