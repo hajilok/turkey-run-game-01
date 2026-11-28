@@ -87,25 +87,25 @@ function renderEndScreen(ctx, state, input, esc) {
     ctx.fillStyle = lgrad(ctx, -90, -110, 90, -10, [[0, '#fff'], [0.45, '#cfdbe4'], [1, '#7c8d9c']]); ctx.beginPath(); ctx.arc(0, -16, 94, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
     disc(ctx, 0, -115, 13, '#f5c258', AUTUMN_PALETTE.inkDark, 3); ctx.restore();
   }
-  const hx = esc ? 426 : 640; ctx.save(); ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+  const hx = esc ? 378 : 640; ctx.save(); ctx.textAlign = 'center'; ctx.lineJoin = 'round';
   const head = esc ? 'ESCAPED DINNER!' : 'CAUGHT FOR DINNER!';
   ctx.font = '900 72px "Trebuchet MS", Impact, sans-serif'; ctx.lineWidth = 12; ctx.strokeStyle = '#241008'; ctx.strokeText(head, hx, 114);
   ctx.fillStyle = esc ? '#ffe975' : '#ff7b54'; ctx.fillText(head, hx, 114);
   const sub = esc ? 'Pippin soared past the Freedom Gate — pumpkin pie for Farmer Barnaby!' : `Caught by ${s.caughtBy || 'Farmer Barnaby'} in ${s.stageName} — dash again!`;
   ctx.font = fnt('800 19px'); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(20,9,4,0.9)'; ctx.strokeText(sub, hx, 150); ctx.fillStyle = '#fff7de'; ctx.fillText(sub, hx, 150); ctx.restore();
 
-  const cx = esc ? 64 : 448, cy = 178, mx = cx + 114, my = cy + 148;
-  drawPanel(ctx, cx, cy, 724, 298, 22, 'rgba(46,24,13,0.93)', esc ? '#fad05e' : '#eb7046');
+  const cx = esc ? 48 : 448, cy = 178, mx = cx + 114, my = cy + 148;
+  drawPanel(ctx, cx, cy, 660, 298, 22, 'rgba(46,24,13,0.93)', esc ? '#fad05e' : '#eb7046');
   disc(ctx, mx, my, 78, rgrad(ctx, mx - 15, my - 15, 12, mx, my, 84, [[0, esc ? '#fff6b5' : '#ffd09c'], [0.55, esc ? '#f4b029' : '#d65d2a'], [1, esc ? '#a85911' : '#7d2415']]), '#fff5cc', 4.5);
   ctx.save(); ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.fillStyle = '#2d1208'; ctx.font = fnt('900 15px'); ctx.fillText('ESCAPE RANK', mx, my - 34);
   ctx.font = '900 78px "Trebuchet MS", Impact, sans-serif'; ctx.fillStyle = '#fffce8'; ctx.lineWidth = 7; ctx.strokeStyle = '#2d1208'; ctx.strokeText(s.rank, mx, my + 34); ctx.fillText(s.rank, mx, my + 34); ctx.restore();
 
   const cols = [['FINAL SCORE', s.score.toLocaleString('en-US'), '#ffe880'], ['DISTANCE', `${s.distanceMeters.toLocaleString('en-US')}m`, '#fff7de'], ['BEST SCORE', Math.max(s.score, state.bestRecord.bestScore).toLocaleString('en-US'), '#9ef5a2'], ['CLOSE CALLS', `${s.closeCalls}`, '#ffbc6e'], ['TRAPS SPRUNG', `${s.ovensSlammed + s.potsBonked + s.gravySlips + s.flourBlinds}`, '#ffa872'], ['RUN TIME', `${s.elapsedSec.toFixed(1)}s`, '#eedcc0']];
   ctx.save();
-  for (let i = 0; i < 6; i++) { const sx = cx + 224 + (i % 3) * 164, sy = cy + 52 + Math.floor(i / 3) * 82; ctx.fillStyle = '#dfc092'; ctx.font = fnt('800 13px'); ctx.textAlign = 'left'; ctx.fillText(cols[i][0], sx, sy); ctx.fillStyle = cols[i][2]; ctx.font = fnt('900 26px'); ctx.fillText(cols[i][1], sx, sy + 30); }
+  for (let i = 0; i < 6; i++) { const sx = cx + 224 + (i % 3) * 160, sy = cy + 52 + Math.floor(i / 3) * 82; ctx.fillStyle = '#dfc092'; ctx.font = fnt('800 13px'); ctx.textAlign = 'left'; ctx.fillText(cols[i][0], sx, sy); ctx.fillStyle = cols[i][2]; ctx.font = fnt('900 26px'); ctx.fillText(cols[i][1], sx, sy + 30); }
   ctx.fillStyle = '#f8cf6e'; ctx.font = fnt('900 14px'); ctx.fillText('MEDALS EARNED:', cx + 224, cy + 226);
   const meds = s.medals.length ? s.medals.slice(0, 3) : [{ label: 'Keep Dashing!' }];
-  for (let m = 0; m < meds.length; m++) { const x = cx + 224 + m * 160; rr(ctx, x, cy + 238, 148, 36, 10, 'rgba(248,196,68,0.22)', '#f8c85c', 2); ctx.fillStyle = '#fff9de'; ctx.font = fnt('800 13px'); ctx.textAlign = 'center'; ctx.fillText(`★ ${meds[m].label}`, x + 74, cy + 261); }
+  for (let m = 0; m < meds.length; m++) { const x = cx + 224 + m * 148; rr(ctx, x, cy + 238, 136, 36, 10, 'rgba(248,196,68,0.22)', '#f8c85c', 2); ctx.fillStyle = '#fff9de'; ctx.font = fnt('800 13px'); ctx.textAlign = 'center'; ctx.fillText(`★ ${meds[m].label}`, x + 68, cy + 261); }
   ctx.restore();
   const bx = esc ? cx + 34 : 336, btns = [{ id: 'restart', x: bx, y: 506, w: 360, h: 78, label: 'PLAY AGAIN (RESTART)', fontSize: 26, style: 'green' }, { id: 'title', x: bx + 382, y: 506, w: 256, h: 78, label: 'TITLE MENU', fontSize: 24, style: 'primary' }];
   input.setButtons(btns); const h = input.getHoveredButton(); for (const b of btns) drawButton(ctx, b, h === b);

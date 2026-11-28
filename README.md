@@ -20,6 +20,8 @@ Built for the [`turkey-run-game-01`](https://make.fun/bounty/turkey-run-game-01?
 ```bash
 node serve.ts
 # Open http://127.0.0.1:8080 in Chrome (100% offline, zero external requests)
+# Deterministic screenshot staging (live simulation, real renders only):
+#   /?shot=kitchen  /?shot=barn  /?shot=escaped  (no query = title screen)
 ```
 
 ## Build Dossier

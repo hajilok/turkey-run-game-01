@@ -1,6 +1,6 @@
 // Storybook character renderer: shaded Pippin the Turkey, plaid-and-apron Farmer Barnaby, lantern vision cone, alert arc, and acorn aim arc.
 
-import { AUTUMN_PALETTE, GROUND_Y, PHYSICS, VIEW_WIDTH } from '../config.js';
+import { AUTUMN_PALETTE, GROUND_Y, PHYSICS, VIEW_WIDTH, clamp } from '../config.js';
 import { computeAcornAimVelocity } from '../entities/turkey.js';
 import { computeVisionCone } from '../entities/farmer-ai.js';
 import { disc, ell, fnt, lgrad, rgrad, drawRoundedRect as rr } from './textures.js';
@@ -146,4 +146,4 @@ function drawWing(ctx, d, m, t) {
   ctx.strokeStyle = AUTUMN_PALETTE.inkDark; ctx.lineWidth = 2; ctx.stroke(); ell(ctx, -22, -2, 10, 4.4, -0.2, m); ell(ctx, -15, 5, 8.5, 4, -0.1, m); ell(ctx, -28, -3, 5, 2.5, -0.2, t);
 }
 function drawLeg(ctx, x, y, tilt) { ctx.save(); ctx.translate(x, y); ctx.rotate(tilt); rr(ctx, -8, 0, 17, 30, 6, '#2b456a', AUTUMN_PALETTE.inkDark, 2.4); rr(ctx, -10, 26, 24, 14, 5, '#3d2214', AUTUMN_PALETTE.inkDark, 2.4); ctx.restore(); }
-function drawPill(ctx, x, y, text, bg, fg) { ctx.save(); ctx.font = fnt('900 14px'); const w = Math.max(96, ctx.measureText(text).width + 24); rr(ctx, x - w * 0.5, y - 14, w, 28, 14, bg, fg, 2.2); ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.fillText(text, x, y + 5); ctx.restore(); }
+function drawPill(ctx, x, y, text, bg, fg) { ctx.save(); ctx.font = fnt('900 14px'); const w = Math.max(96, ctx.measureText(text).width + 24), px = clamp(x, w * 0.5 + 8, VIEW_WIDTH - w * 0.5 - 8); rr(ctx, px - w * 0.5, y - 14, w, 28, 14, bg, fg, 2.2); ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.fillText(text, px, y + 5); ctx.restore(); }

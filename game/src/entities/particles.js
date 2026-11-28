@@ -1,6 +1,6 @@
 // Expressive Thanksgiving particle effects: barbed turkey feathers, autumn maple leaves, hearth embers, oven flames, gravy splashes, and comic callouts.
 
-import { createSeededRng } from '../config.js';
+import { VIEW_WIDTH, createSeededRng } from '../config.js';
 import { disc, ell, rgrad } from '../render/textures.js';
 
 export function createParticleSystem() { return new ParticleSystem(); }
@@ -88,7 +88,9 @@ export class ParticleSystem {
     for (const c of this.callouts) {
       const u = c.age / c.life; ctx.save(); ctx.globalAlpha = u < 0.72 ? 1 : Math.max(0, (1 - u) / 0.28);
       ctx.font = `900 ${Math.round(21 * c.scale)}px "Trebuchet MS", sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
-      ctx.lineWidth = 5; ctx.strokeStyle = '#241108'; ctx.strokeText(c.text, c.x - cameraX, c.y); ctx.fillStyle = c.color; ctx.fillText(c.text, c.x - cameraX, c.y); ctx.restore();
+      // Clamp the callout inside the viewport so labels never clip at the screen edge.
+      const halfW = ctx.measureText(c.text).width * 0.5 + 10, sx = Math.max(halfW, Math.min(VIEW_WIDTH - halfW, c.x - cameraX));
+      ctx.lineWidth = 5; ctx.strokeStyle = '#241108'; ctx.strokeText(c.text, sx, c.y); ctx.fillStyle = c.color; ctx.fillText(c.text, sx, c.y); ctx.restore();
     }
     if (this.screenFlash.alpha > 0.01) { ctx.globalAlpha = this.screenFlash.alpha; ctx.fillStyle = this.screenFlash.color; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); }
     ctx.restore();

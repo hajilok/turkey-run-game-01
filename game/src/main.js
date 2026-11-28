@@ -1,5 +1,6 @@
 // Featherbreak main bootstrap: fixed-timestep simulation, 2.5D lighting & reflections pipeline, stage transitions, and 3 replay modes.
 
+import { applyShotSetup } from './shots.js';
 import { COURSE_LENGTH_PX, FIXED_DT, GROUND_Y, PIXELS_PER_METER, TOTAL_DISTANCE_METERS, VIEW_HEIGHT, VIEW_WIDTH, clamp, getModeConfig } from './config.js';
 import { createInputManager } from './input.js';
 import { createSoundEngine } from './audio/sound-engine.js';
@@ -167,6 +168,8 @@ export function bootstrapGame() {
   const canvas = document.getElementById('game-canvas'); if (!canvas) return;
   const ctx = canvas.getContext('2d'), input = createInputManager(canvas), state = createGameState(1, 'story');
   state.atlas = buildMaterialAtlas(ctx); state.lighting = createLightingEngine();
+  // Deterministic screenshot staging (?shot=kitchen|barn|escaped|title); inert in normal play.
+  applyShotSetup(state, new URLSearchParams(window.location.search).get('shot'), { startNewRun, finalizeRun, input });
   input.onUserGesture = () => state.sound.unlock();
   let lastTs = performance.now(), acc = 0;
   function frame(now) {

@@ -50,7 +50,9 @@ export class InputManager {
 
   getMoveX() { return (this.keys.has('KeyD') || this.keys.has('ArrowRight') ? 1 : 0) - (this.keys.has('KeyA') || this.keys.has('ArrowLeft') ? 1 : 0); }
   isJumpHeld() { return this.keys.has('Space') || this.keys.has('KeyW') || this.keys.has('ArrowUp'); }
-  isHideHeld() { return this.keys.has('KeyS') || this.keys.has('ArrowDown') || this.keys.has('KeyE'); }
+  isHideHeld() { return this._forceHideHeld || this.keys.has('KeyS') || this.keys.has('ArrowDown') || this.keys.has('KeyE'); }
+  // Screenshot staging only: hold the turkey in cover without a key press.
+  setForceHideHeld(v) { this._forceHideHeld = Boolean(v); }
   wasPressed(code) { return this.justPressed.has(code); }
   consumeJumpBuffer() { if (this.jumpBufferTimer > 0) { this.jumpBufferTimer = 0; return true; } return false; }
   consumeDashBuffer() { if (this.dashBuffered) { this.dashBuffered = false; return true; } return false; }

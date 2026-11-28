@@ -60,7 +60,7 @@ export function renderHarvestBarnStage(ctx, cameraX, time, barnStart, barnEnd, a
   if (right <= left) return;
   ctx.save(); ctx.beginPath(); ctx.rect(left, 0, right - left, GROUND_Y); ctx.clip();
   if (atlas) { ctx.save(); ctx.translate(-(cameraX * 0.65) % 128, 0); ctx.fillStyle = atlas.barnTimber; ctx.fillRect(left - 140, 0, right - left + 280, GROUND_Y); ctx.restore(); }
-  ctx.fillStyle = lgrad(ctx, 0, 0, 0, GROUND_Y, [[0, 'rgba(18,7,4,0.50)'], [0.5, 'rgba(65,28,12,0.14)'], [1, 'rgba(28,12,5,0.40)']]); ctx.fillRect(left, 0, right - left, GROUND_Y);
+  ctx.fillStyle = lgrad(ctx, 0, 0, 0, GROUND_Y, [[0, 'rgba(18,7,4,0.36)'], [0.5, 'rgba(65,28,12,0.10)'], [1, 'rgba(28,12,5,0.34)']]); ctx.fillRect(left, 0, right - left, GROUND_Y);
   for (let wx = Math.floor((barnStart + 110) / 420) * 420; wx < barnEnd; wx += 420) {
     const sx = (wx - barnStart) - (cameraX - barnStart) * 0.76; if (sx < -260 || sx > VIEW_WIDTH + 260) continue;
     ctx.fillStyle = lgrad(ctx, sx, 112, sx, 236, [[0, '#5a3656'], [0.5, '#e8823c'], [1, '#ffe284']]); ctx.fillRect(sx - 64, 112, 128, 124);
@@ -76,6 +76,7 @@ export function renderHarvestBarnStage(ctx, cameraX, time, barnStart, barnEnd, a
     ctx.strokeStyle = '#241209'; ctx.lineWidth = 3; ln(ctx, sx + 94, 48, lx, 152);
     glow(ctx, lx, 168, 108, 'rgba(255,226,130,0.88)');
     ctx.fillStyle = '#3b2112'; ctx.fillRect(lx - 10, 152, 20, 6); ctx.fillStyle = '#fff3b5'; ctx.fillRect(lx - 7, 158, 14, 20); ctx.strokeRect(lx - 7, 158, 14, 20);
+    drawBarnWallDecor(ctx, sx, time);
   }
   ctx.fillStyle = '#2c140a'; ctx.fillRect(left, 0, right - left, 58); ctx.restore();
 }
@@ -231,6 +232,24 @@ function drawPieShelf(ctx, x, y, time) {
 function drawDinnerClock(ctx, cx, cy) {
   ctx.save(); disc(ctx, cx, cy, 34, '#5c311b', '#e8b34c', 3); disc(ctx, cx, cy, 27, '#fbf0d5');
   ctx.strokeStyle = '#24120a'; ctx.lineWidth = 3; ln(ctx, cx, cy, cx - 2, cy + 16); ln(ctx, cx, cy, cx - 8, cy - 18); disc(ctx, cx, cy, 3.5, '#c92a22'); ctx.restore();
+}
+function drawBarnWallDecor(ctx, sx, time) {
+  ctx.save();
+  // Hanging garlic braid, left of the window.
+  const gx = sx - 248;
+  ctx.strokeStyle = '#c8a86a'; ctx.lineWidth = 3; ln(ctx, gx, 84, gx, 196);
+  for (let i = 0; i < 4; i++) { const gy = 108 + i * 24; disc(ctx, gx + (i % 2 ? -7 : 7), gy, 9, '#f5ebd1', '#8a6a3a', 1.6); disc(ctx, gx + (i % 2 ? 7 : -7), gy + 6, 7, '#efe0c0', '#8a6a3a', 1.4); }
+  // Horseshoe and rope coil on the wall right of the beam.
+  ctx.strokeStyle = '#d8b25e'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(sx + 224, 306, 20, Math.PI * 0.15, Math.PI * 0.85, false); ctx.stroke();
+  disc(ctx, sx + 205, 300, 3.4, '#d8b25e'); disc(ctx, sx + 243, 300, 3.4, '#d8b25e');
+  ctx.strokeStyle = '#b98d4e'; ctx.lineWidth = 4;
+  for (let r = 8; r <= 20; r += 6) { ctx.beginPath(); ctx.arc(sx + 224, 158, r, 0, 6.28); ctx.stroke(); }
+  // Grain sacks at the wall base, right of the beam.
+  for (const [ox, w, h] of [[214, 52, 58], [262, 44, 48]]) {
+    rr(ctx, sx + ox, GROUND_Y - h, w, h, 12, '#a8824e', '#5e3a1a', 2);
+    ctx.strokeStyle = '#5e3a1a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx + ox + 6, GROUND_Y - h + 12); ctx.lineTo(sx + ox + w - 6, GROUND_Y - h + 12); ctx.stroke();
+  }
+  ctx.restore();
 }
 function drawHills(ctx, sx, by, amp, f, col) {
   ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, GROUND_Y);
